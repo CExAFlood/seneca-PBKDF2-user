@@ -655,7 +655,7 @@ module.exports = function user(options) {
         return done(null,{ok:false,token:args.token,why:'login-not-found'})
       }
 
-      userent.load$( {id:login.user}, function( err, user ) {
+      userent.load$( {nick:login.nick}, function( err, user ) {
         if( err ) return done(err);
 
         if( !user ) {

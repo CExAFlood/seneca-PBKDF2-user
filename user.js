@@ -660,6 +660,8 @@ module.exports = function user(options) {
 
         if( !user ) {
           return done(null,{ok:false,token:args.token,user:login.user,why:'user-not-found'})
+        }else if(user.active === false){
+          return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
         }
 
         done(null,{user:user,login:login,ok:true})

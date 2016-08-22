@@ -663,6 +663,10 @@ module.exports = function user(options) {
         }else if(user.active === false){
           return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
         }
+        
+        if(login.user !== user.id){
+          login.user = user.id;
+        }
 
         done(null,{user:user,login:login,ok:true})
       })

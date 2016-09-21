@@ -658,21 +658,40 @@ module.exports = function user(options) {
         return done(null,{ok:false,token:args.token,why:'login-not-found'})
       }
 
-      userent.load$( {nick:login.nick}, function( err, user ) {
-        if( err ) return done(err);
+      async.waterfall(
+        [
+          function(callback){
+            userent.load$( {nick:login.nick}, function( err, user ) {
+              callback(err, user);
+            });
+          },
+          function(user, callback){
+            if(user){
+              callback(null, user);
+            }
+            else{
+              userent.load$( {novellId:login.nick}, function( err, user ) {
+                callback(err, user);
+              });
+            }
+          }
+        ],
+        function (err, user) {
+          if( err ) return done(err);
 
-        if( !user ) {
-          return done(null,{ok:false,token:args.token,user:login.user,why:'user-not-found'})
-        }else if(user.active === false){
-          return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
+          if( !user ) {
+            return done(null,{ok:false,token:args.token,user:login.user,why:'user-not-found'})
+          }else if(user.active === false){
+            return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
+          }
+          else{
+            if(login.user !== user.id){
+              login.user = user.id;
+            }
+            done(null,{user:user,login:login,ok:true})
+          }
         }
-        
-        if(login.user !== user.id){
-          login.user = user.id;
-        }
-
-        done(null,{user:user,login:login,ok:true})
-      })
+      );
     })
   }
 

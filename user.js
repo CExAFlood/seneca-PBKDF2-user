@@ -5,6 +5,7 @@ var assert = require('assert');
 var crypto = require('crypto')
 var uuid = require('node-uuid')
 var _    = require('underscore')
+var async = require('async');
 _.mixin({ 'deepExtend': deepExtend });
 
 

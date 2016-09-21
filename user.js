@@ -5,6 +5,7 @@ var assert = require('assert');
 var crypto = require('crypto')
 var uuid = require('node-uuid')
 var _    = require('underscore')
+var async = require('async');
 _.mixin({ 'deepExtend': deepExtend });
 
 
@@ -573,18 +574,21 @@ module.exports = function user(options) {
 
     function make_login( user, why ) {
       var cleanargs = seneca.util.clean(_.clone(args))
-
-      var login = loginent.make$( seneca.util.argprops(
-        {},
-        cleanargs,
-        {
+      var loginargs = {
           id$     : uuid(),
           nick    : user.nick,
           user    : user.id,
           when    : new Date().toISOString(),
           active  : true,
           why     : why
-        },
+      };
+      if(user.novellId){
+        loginargs['novellId'] = user.novellId;
+      }
+      var login = loginent.make$( seneca.util.argprops(
+        {},
+        cleanargs,
+        loginargs,
         "role,cmd,password"))
 
       login.token = login.id$, // DEPRECATED
@@ -655,21 +659,39 @@ module.exports = function user(options) {
         return done(null,{ok:false,token:args.token,why:'login-not-found'})
       }
 
-      userent.load$( {nick:login.nick}, function( err, user ) {
-        if( err ) return done(err);
+      async.waterfall(
+        [
+          function(callback){
+            userent.load$( {nick:login.nick}, function( err, user ) {
+              callback(err, user);
+            });
+          },
+          function(user, callback){
+            if(user){
+              callback(null, user);
+            }
+            else{
+              userent.load$( {novellId:login.nick}, function( err, user ) {
+                callback(err, user);
+              });
+            }
+          }
+        ],
+        function (err, user) {
+          if( err ) return done(err);
 
-        if( !user ) {
-          return done(null,{ok:false,token:args.token,user:login.user,why:'user-not-found'})
-        }else if(user.active === false){
-          return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
+          if( !user ) {
+            return done(null,{ok:false,token:args.token,user:login.user,why:'user-not-found'})
+          }else if(user.active === false){
+            return done(null,{ok:false,token:args.token,user:login.user,why:'not-active'})
+          }else{
+            if(login.user !== user.id){
+              login.user = user.id;
+            }
+            done(null,{user:user,login:login,ok:true})
+          }
         }
-        
-        if(login.user !== user.id){
-          login.user = user.id;
-        }
-
-        done(null,{user:user,login:login,ok:true})
-      })
+      );
     })
   }
 

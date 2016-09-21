@@ -573,18 +573,21 @@ module.exports = function user(options) {
 
     function make_login( user, why ) {
       var cleanargs = seneca.util.clean(_.clone(args))
-
-      var login = loginent.make$( seneca.util.argprops(
-        {},
-        cleanargs,
-        {
+      var loginargs = {
           id$     : uuid(),
           nick    : user.nick,
           user    : user.id,
           when    : new Date().toISOString(),
           active  : true,
           why     : why
-        },
+      };
+      if(user.novellId){
+        loginargs['novellId'] = user.novellId;
+      }
+      var login = loginent.make$( seneca.util.argprops(
+        {},
+        cleanargs,
+        loginargs,
         "role,cmd,password"))
 
       login.token = login.id$, // DEPRECATED
